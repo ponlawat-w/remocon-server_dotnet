@@ -12,6 +12,10 @@ namespace RemoconServer
 {
     public class Program
     {
+        public static int SenderPort = 9010;
+        public static int ReceiverPort = 9009;
+        public static int BufferSize = 1024;
+
         public static void Main(string[] args)
         {
             CreateWebHostBuilder(args).Build().Run();
@@ -19,6 +23,7 @@ namespace RemoconServer
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
+                .UseUrls($"http://localhost:{SenderPort}", $"http://localhost:{ReceiverPort}")
                 .UseStartup<Startup>();
     }
 }

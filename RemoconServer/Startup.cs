@@ -35,7 +35,12 @@ namespace RemoconServer
                 app.UseDeveloperExceptionPage();
             }
 
-            app.UseMvc();
+            app.UseWebSockets(new WebSocketOptions()
+            {
+                ReceiveBufferSize = Program.BufferSize
+            });
+
+            app.Use(RemoconSocketServer.AddClient);
         }
     }
 }
