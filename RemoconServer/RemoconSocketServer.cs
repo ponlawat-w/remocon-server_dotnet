@@ -29,35 +29,40 @@ namespace RemoconServer
         private static readonly List<WebSocket> Senders = new List<WebSocket>();
         private static readonly List<WebSocket> Receivers = new List<WebSocket>();
 
+        public static string GetState()
+        {
+            return $"senders={Senders.Count}, receivers={Receivers.Count}";
+        }
+
         public static async Task AddClient(HttpContext context, Func<Task> next)
         {
             if (!context.WebSockets.IsWebSocketRequest)
             {
+                Console.WriteLine("Unexpected non-websocket request");
                 context.Response.StatusCode = 400;
-                await next();
                 return;
             }
 
-            int? port = context.Request.Host.Port;
             string path = context.Request.Path;
 
             WebSocket client = await context.WebSockets.AcceptWebSocketAsync();
             ClientType type;
-            if (port == Program.SenderPort && path == "/sender")
+            if (path == "/sender")
             {
                 Senders.Add(client);
+                Console.WriteLine($"New sender! {GetState()}");
                 type = ClientType.Sender;
             }
-            else if (port == Program.ReceiverPort && path == "/receiver")
+            else if (path == "/receiver")
             {
                 Receivers.Add(client);
+                Console.WriteLine($"New receiver! {GetState()}");
                 type = ClientType.Receiver;
             }
             else
             {
-                await client.CloseAsync(WebSocketCloseStatus.EndpointUnavailable,
-                    "Unknown port or path", CancellationToken.None);
-                await next();
+                Console.WriteLine($"New client is coming to the wrong path.");
+                await client.CloseAsync(WebSocketCloseStatus.EndpointUnavailable, "Unknown path", CancellationToken.None);
                 return;
             }
 
@@ -71,10 +76,12 @@ namespace RemoconServer
                 if (type == ClientType.Sender)
                 {
                     Senders.Remove(client);
+                    Console.WriteLine($"Sender disconntected! ({ex.Message}) {GetState()}");
                 }
                 else if (type == ClientType.Receiver)
                 {
                     Receivers.Remove(client);
+                    Console.WriteLine($"Receiver disconnected! ({ex.Message}) {GetState()}");
                     await BroadcastReceiversAmount();
                 }
             }
